@@ -1,0 +1,201 @@
+---
+title: "Supplemental Note: Comparing p-values in TSLS and IV Analysis"
+author: "Fergus Hamilton"
+embed-resources: true
+execute:
+  echo: false
+  warning: false
+---
+
+## Supplemental Note 1
+
+In this supplemental note, we describe using equations why the p-value of the Two-Stage Least Squares (TSLS) estimate should always be larger than the p-value of the Instrumental Variable (IV) outcome estimate. This is a consequence of how the variances propagate through the two-stage estimation process. Equations are taken from the key literature, e.g. Micronometrics: Methods and Applications by Cameron and Trivedi (2005). 
+
+## Mathematical Explanation
+
+### Definitions and Notation
+
+-   Let $\alpha_1$ be the IV estimate from the reduced form regression.
+-   Let $\pi_1$ be the IV estimate from the first stage regression.
+-   Let $\beta_{IV} = \frac{\alpha_1}{\pi_1}$ be the TSLS estimate.
+-   Let $\text{Var}(\hat{\alpha}_1)$ be the variance of $\alpha_1$.
+-   Let $\text{Var}(\hat{\pi}_1)$ be the variance of $\pi_1$.
+-   Let $\text{SE}(\hat{\alpha}_1)$ be the standard error of $\alpha_1$.
+-   Let $\text{SE}(\hat{\pi}_1)$ be the standard error of $\pi_1$.
+
+### Variance Propagation
+
+The standard error of the TSLS estimate $\beta_{IV}$ is given by:
+
+$$
+\text{SE}(\hat{\beta}_{IV}) = \sqrt{\frac{\text{Var}(\hat{\alpha}_1)}{\pi_1^2} + \hat{\beta}_{IV}^2 \cdot \frac{\text{Var}(\hat{\pi}_1)}{\pi_1^2}}
+$$
+
+### P-values
+
+The p-value is calculated from the test statistic, which is typically the estimate divided by its standard error:
+
+For the IV outcome:
+
+$$
+z_{\alpha_1} = \frac{\alpha_1}{\text{SE}(\hat{\alpha}_1)}
+$$
+
+For the TSLS estimate:
+
+$$
+z_{\beta_{IV}} = \frac{\beta_{IV}}{\text{SE}(\hat{\beta}_{IV})}
+$$
+
+### Comparison of Test Statistics
+
+Since $\beta_{IV} = \frac{\alpha_1}{\pi_1}$, we can substitute and get:
+
+$$
+z_{\beta_{IV}} = \frac{\frac{\alpha_1}{\pi_1}}{\sqrt{\frac{\text{Var}(\hat{\alpha}_1)}{\pi_1^2} + \frac{\alpha_1^2}{\pi_1^2} \cdot \frac{\text{Var}(\hat{\pi}_1)}{\pi_1^2}}}
+$$
+
+Simplifying this expression, we get:
+
+$$
+z_{\beta_{IV}} = \frac{\alpha_1 / \pi_1}{\sqrt{\frac{\text{Var}(\hat{\alpha}_1)}{\pi_1^2} + \frac{\alpha_1^2 \cdot \text{Var}(\hat{\pi}_1)}{\pi_1^2}}}
+$$
+
+$$
+z_{\beta_{IV}} = \frac{\alpha_1}{\sqrt{\text{Var}(\hat{\alpha}_1) + \frac{\alpha_1^2 \cdot \text{Var}(\hat{\pi}_1)}{\pi_1^2}}}
+$$
+
+### Inequality of p-values
+
+The variance term in the denominator for $z_{\beta_{IV}}$ is always larger than the variance term in the denominator for $z_{\alpha_1}$ because it includes an additional positive term $\frac{\alpha_1^2 \cdot \text{Var}(\hat{\pi}_1)}{\pi_1^2}$. Therefore:
+
+$$
+\sqrt{\text{Var}(\hat{\alpha}_1)} < \sqrt{\text{Var}(\hat{\alpha}_1) + \frac{\alpha_1^2 \cdot \text{Var}(\hat{\pi}_1)}{\pi_1^2}}
+$$
+
+This implies:
+
+$$
+|z_{\alpha_1}| > |z_{\beta_{IV}}|
+$$
+
+Since p-values are inversely related to the absolute value of the test statistic, the p-value for $\beta_{IV}$ will be larger than the p-value for $\alpha_1$:
+
+$$
+p_{\beta_{IV}} > p_{\alpha_1}
+$$
+
+## Conclusion
+
+We have shown using equations that the p-value of the TSLS estimate $\beta_{IV}$ will always be larger than the p-value of the IV outcome $\alpha_1$. This is due to the additional variance term introduced in the TSLS estimation process. The only exceptions can be if there is a mathematical error in the TSLS estimation, or the choice of control variables leads to significant changes in estimates. An example of this is described in Supplemental Note 2.
+
+## Addendum: IV-analysis using the raw data from the paper. For completeness, we estimated the TSLS estimate from the raw presented data. This will not match exactly but should be close to an unadjusted, raw TSLS estimate.
+
+### Raw Data from the Paper
+
+-   **First Stage (IV-Exposure Effect)**:
+    -   Effect of IV (Within shortage) on exposure (pip-taz treatment probability)
+    -   $\beta = -0.659$
+    -   95% Confidence Interval: $[-0.68, -0.64]$
+    -   p-value: $< 0.001$
+    -   F-statistic: 4535
+-   **Mortality Data**:
+    -   Number of patients outside shortage: 5460
+    -   Number of patients within shortage: 2109
+    -   Number of deaths outside shortage: 1137
+    -   Number of deaths within shortage: 417
+
+### IV-Exposure Effect (First Stage)
+
+From the first stage data:
+
+$$
+\pi_1 = -0.659
+$$
+
+### Logistic Regression for IV-Outcome Effect
+
+Using logistic regression to estimate the IV-outcome effect and its standard error.
+
+#### Logistic Regression Results:
+
+-   Coefficient ($\alpha_1$): -0.0650
+-   Standard Error ($\text{SE}(\hat{\alpha}_1)$): 0.0640
+
+### TSLS Estimate
+
+Using the IV estimates from the first stage and the logistic regression:
+
+$$
+\alpha_1 = -0.0650
+$$
+
+$$
+\beta_{IV} = \frac{\alpha_1}{\pi_1} = \frac{-0.0650}{-0.659} = 0.0987
+$$
+
+### Standard Error of the TSLS Estimate
+
+Given the standard errors: - $\text{SE}(\hat{\alpha}_1) = 0.0640$ - $\text{SE}(\hat{\pi}_1) = 0.0102$
+
+The standard error of the TSLS estimate is:
+
+$$
+\text{SE}(\hat{\beta}_{IV}) = \sqrt{\frac{(0.0640)^2}{(-0.659)^2} + (0.0987)^2 \cdot \frac{(0.0102)^2}{(-0.659)^2}}
+$$
+
+$$
+\text{SE}(\hat{\beta}_{IV}) = \sqrt{0.00937744 + 0.00023125} \approx 0.0972
+$$
+
+### 95% Confidence Interval for TSLS Estimate
+
+The 95% Confidence Interval is:
+
+$$
+\text{CI} = 0.0987 \pm 1.96 \times 0.0972 = [0.0987 - 0.1905, 0.0987 + 0.1905] = [-0.0918, 0.2891]
+$$
+
+### Reporting TSLS as Odds Ratio and Absolute Risk Increase
+
+The TSLS estimate in terms of odds ratio (OR) can be calculated as:
+
+$$
+\text{OR} = e^{\beta_{IV}} = e^{0.0987} \approx 1.1037
+$$
+
+To estimate the absolute risk increase, we convert the OR to risk difference:
+
+Given the baseline mortality rate outside the shortage period is 20.8%, we can estimate the absolute risk increase.
+
+$$
+\text{Absolute Risk Increase} = \text{Baseline Risk} \times (\text{OR} - 1)
+$$
+
+$$
+\text{Absolute Risk Increase} = 0.208 \times (1.1037 - 1) \approx 0.0217 \text{ or 2.17%}
+$$
+
+### 95% Confidence Interval for Odds Ratio
+
+For the 95% confidence interval of the OR, we use the confidence limits of the TSLS estimate:
+
+$$
+\text{OR Lower CI} = e^{-0.0918} \approx 0.9123
+$$
+
+$$
+\text{OR Upper CI} = e^{0.2891} \approx 1.3355
+$$
+
+### 95% Confidence Interval for Absolute Risk Increase
+
+For the absolute risk increase, we calculate the bounds as follows:
+
+$$
+\text{Absolute Risk Increase Lower CI} = 0.208 \times (0.9123 - 1) \approx -0.0183 \text{ or -1.83%}
+$$
+
+$$
+\text{Absolute Risk Increase Upper CI} = 0.208 \times (1.3355 - 1) \approx 0.0698 \text{ or 6.98%}
+$$
