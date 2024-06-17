@@ -19,7 +19,7 @@ U <- rbinom(n, 1, q)  # Confounder
 X <- rbinom(n, 1, plogis(0.5 + 3 * Z + 2 * U))
 
 # Generate Metronidazole (M) based on Z and U with strong effects
-M <- rbinom(n, 1, plogis(0.5 + 2 * Z + 2 * U))
+M <- rbinom(n, 1, plogis(0.5 + 2 * Z + 3 * U))
 
 # Generate Mortality (Y) based on U only with strong effects, and no causal effect of X
 Y <- rbinom(n, 1, plogis(0.5 + 2 * U))
@@ -41,4 +41,5 @@ print(summary1)
 
 print("IV Regression adjusting for M")
 print(summary2)
+
 

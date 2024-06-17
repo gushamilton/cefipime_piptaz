@@ -10,7 +10,9 @@ execute:
 
 ## Introduction
 
-In this document, we perform an instrumental variable (IV) analysis using a simulated dataset to illustrate why adjusting for Metronidazole (MTZ) is a bad idea in the context of a piperacillin-tazobactam (pip-taz) shortage when MTZ is commonly used instead. We will also provide a Directed Acyclic Graph (DAG) to visually explain the relationships between the variables.
+In this document, we perform an instrumental variable (IV) analysis using a simulated dataset to illustrate why adjusting for Metronidazole (MTZ) may lead to bias in estimating the effect of cefipime on mortality in the context of a piperacillin-tazobactam (pip-taz) shortage when MTZ is commonly used instead. We will also provide a Directed Acyclic Graph (DAG) to visually explain the relationships between the variables.
+
+First, we generate a causal model where there is no effect of cefipime on mortality:
 
 ## Directed Acyclic Graph (DAG)
 
@@ -34,10 +36,11 @@ dag <- dagitty('dag {
   U -> M
 
 }')
+tidy_dag <- tidy_dagitty(dag, layout = "circle")
 
-ggdag(dag, text = TRUE, layout = "circle") +
+ggdag(tidy_dag, text = TRUE) +
   theme_dag() +
-  ggtitle("Simple causal model")
+  ggtitle("Simple causal model where there is no effect of cefipime on mortality:")
 
 ```
 
@@ -46,15 +49,17 @@ In this DAG:
 ```         
 •   Z is the instrument (Pip-Taz Shortage).
 •   X is the exposure (use of cefipime)
-•   M is the Metronidazole use.
+•   M is Metronidazole use.
 •   Y is the outcome (e.g. mortality, or length of stay)
 •   U is an unmeasured confounder.
 ```
+Note, there is no effect of cefipime on mortality in this graph (there is no arrow between X and Y).
 
-Adjusting for M in this context is problematic because M is influenced by both Z and U. By adjusting for M, we can introduce bias due to conditioning on a collider, which opens up a backdoor path that was otherwise blocked.
+Adjusting for Metronidazole (M) in this context is problematic because M is influenced by both Z and U. By adjusting for M, we can introduce bias due to conditioning on a collider, which opens up a backdoor path that was otherwise blocked.
 
-```{r}
+We can simulate this set up:
 
+```{r, echo = T}
 # Load necessary libraries
 library(dplyr)
 library(broom)
@@ -84,23 +89,39 @@ Y <- rbinom(n, 1, plogis(0.5 + 2 * U))
 # Create DataFrame
 data <- data.frame(Z = Z, U = U, X = X, M = M, Y = Y)
 
+head(data)
+```
+
+We can see that we have created a dataframe with 50,000 participants with the above causal paths. As can be seen in the above formula, there is no direct relationship between X (cefipime usage) and Y (mortality).
+
+We can then run IV regression both unadjusted:
+
+```{r, echo = T}
 # IV regression without adjusting for M
 iv_model1 <- ivreg(Y ~ X | Z, data = data)
 summary1 <- summary(iv_model1)
-
-# IV regression adjusting for M
-iv_model2 <- ivreg(Y ~ X + M | Z + M, data = data)
-summary2 <- summary(iv_model2)
 
 # Display the results
 print("IV Regression without adjusting for M")
 print(summary1)
 
+```
+
+
+And adjusted for Metronidazole use:
+```{r, echo = T}
+# IV regression adjusting for M
+iv_model2 <- ivreg(Y ~ X + M | Z + M, data = data)
+summary2 <- summary(iv_model2)
+
+
 print("IV Regression adjusting for M")
 print(summary2)
+```
 
+We can also plot these estimates:
 
-
+```{r}
 # Extract coefficients and confidence intervals
 estimates <- data.frame(
   model = c("Without adjusting for MTZ", "Adjusting for MTZ"),
@@ -121,21 +142,68 @@ ggplot(estimates, aes(x = model, y = estimate)) +
   coord_flip()
 ```
 
-Adjusting for Metronidazole (MTZ) in the analysis introduces bias because MTZ is affected by both the instrument (Z) and the confounder (U). When we condition on MTZ, we inadvertently open a backdoor path from Z to Y through U, which can introduce spurious associations and bias the estimate of the effect of X on Y.
+As can be seen; adjusting for M leads to a strong estimated effect of X onto Z. This suggests - incorrectly for this causal model - that cefipime usage is associated with reduced mortality.
 
-To understand this, think of MTZ as a marker for more severe illness. Patients who are more severely ill are more likely to receive MTZ. In our DAG, MTZ (M) is also influenced by the instrument (Z, pip-taz shortage) because during a shortage, doctors prescribe MTZ more often. This is shown in the paper. MTZ is influenced by the confounder (U), which represents the severity of illness.
+Adjusting for metronidazole (M) in the analysis introduces bias because M is affected by both the instrument (Z) and the confounder (U). When we condition on MTZ, we inadvertently open a backdoor path from Z to Y through U, which can introduce spurious associations and bias the estimate of the effect of X on Y.
 
-When we adjust for MTZ, we are essentially saying, “Let’s compare patients who received MTZ to those who didn’t, within each level of MTZ use.” However, since MTZ use is driven by both the shortage and the severity of illness, this comparison mixes up the effects of the shortage and the illness severity.
+To understand this, think of metronidazole as a marker for more severe illness. Patients who are more severely ill are more likely to receive metronidazole. In our DAG, (M) is also influenced by the instrument (Z, pip-taz shortage) because during a shortage, doctors prescribe MTZ more often. This is shown in the paper. MTZ is influenced by the confounder (U), which represents the severity of illness.
+
+When we adjust for M, we are essentially saying, “Let’s compare patients who received metronidazole to those who didn’t, within each level of metronidazole use.” However, since metronidazole use is driven by both the shortage and the severity of illness, this comparison mixes up the effects of the shortage and the illness severity.
 
 In simpler terms:
 
-• Without adjusting for MTZ: We are comparing mortality rates between those who had used cefipime and those who didn’t, while ignoring MTZ use.
+• Without adjusting for metronidazole: We are comparing mortality rates between those who had used cefipime and those who didn’t, while ignoring metronidazole use.
 
-• Adjusting for MTZ: We are comparing mortality rates between those who had access to pip-taz and those who didn’t, within the groups of those who used MTZ and those who didn’t. This comparison is flawed because MTZ use itself is influenced by how sick patients are, which is not directly related to the pip-taz shortage.
+• Adjusting for metronidazole: We are comparing mortality rates between those who had access to pip-taz and those who didn’t, within the groups of those who used metronidazole and those who didn’t. This comparison is flawed because metronidazole use itself is influenced by how sick patients are, which is not directly related to the pip-taz shortage.
 
 
-Therefore, adjusting for MTZ breaks the assumption that the instrument (Z) only affects the outcome (Y) through the exposure (cefipime usage), leading to biased estimates.
+Therefore, adjusting for M breaks the assumption that the instrument (Z) only affects the outcome (Y) through the exposure (cefipime usage), leading to biased estimates.
 
 Conclusion
 
-Our analysis illustrates that adjusting for colliders such as MTZ can introduce bias in instrumental variable analyses. In the context of a piperacillin-tazobactam shortage where MTZ is commonly used as an alternative, it is crucial to avoid adjusting for MTZ to maintain the validity of the IV assumptions.
+Our analysis illustrates that adjusting for colliders such as metronidazole can introduce bias in instrumental variable analyses. In the context of a piperacillin-tazobactam shortage where MTZ is commonly used as an alternative, it is crucial to avoid adjusting for MTZ to maintain the validity of the IV assumptions.
+
+
+# Supplement: what happens when you run the analyses in MTZ users and non-MTZ users?
+
+Running the analysis stratified also leads to selection bias:
+
+```{r, echo =T}
+# Create DataFrame
+data <- data.frame(Z = Z, U = U, X = X, M = M, Y = Y)
+
+mtz_df <- data %>%
+  filter(M == 1)
+
+nomtz_df <- data %>%
+  filter(M == 0)
+
+# IV regression users
+iv_model1 <- ivreg(Y ~ X | Z, data = mtz_df)
+summary1 <- summary(iv_model1)
+
+# IV regression non-users
+iv_model2 <- ivreg(Y ~ X  | Z , data = nomtz_df)
+summary2 <- summary(iv_model2)
+
+# Extract coefficients and confidence intervals
+estimates <- data.frame(
+  model = c("Metronidazole users", "Metronidazole non-users"),
+  estimate = c(coef(summary1)[2, 1], coef(summary2)[2, 1]),
+  conf.low = c(confint(iv_model1)[2, 1], confint(iv_model2)[2, 1]),
+  conf.high = c(confint(iv_model1)[2, 2], confint(iv_model2)[2, 2])
+)
+
+# Create forest plot
+ggplot(estimates, aes(x = model, y = estimate)) +
+  geom_point(size = 4) +
+  geom_hline(aes(yintercept = 0), col = "red", lty = "dashed") +
+  geom_errorbar(aes(ymin = conf.low, ymax = conf.high), width = 0.2) +
+  labs(title = "Estimates of the effect of pip-taz on any outcome: stratified",
+       x = "Model",
+       y = "Estimate (95% CI)") +
+  theme_bw() +
+  coord_flip()
+
+```
+

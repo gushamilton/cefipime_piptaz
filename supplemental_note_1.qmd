@@ -1,10 +1,12 @@
 ---
 title: "Supplemental Note: Comparing p-values in TSLS and IV Analysis"
 author: "Fergus Hamilton"
+format: html
 embed-resources: true
 execute:
   echo: false
   warning: false
+
 ---
 
 ## Supplemental Note 1
